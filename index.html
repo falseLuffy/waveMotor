@@ -362,14 +362,14 @@
             <h1 style="margin-top: 0;">WaveMotor</h1>
             <h2>浪 花 机 车 · 水 上 狂 飙</h2>
             <p>骑着摩托在水面上狂飙！竞速模式：穿过红绿浮标、避开礁石和对手；<br>
-                单人模式：无人打扰的蜿蜒河道计时赛，没有礁石，只有你和浪。偏离赛道 5 秒将被取消资格！</p>
+                单人模式：无尽蜿蜒河道，没有终点，只有你和浪——看看你能坚持多久！偏离河道 5 秒将被取消资格！</p>
             <div>
                 <button class="difficulty-btn" onclick="startGame('easy')">简单</button>
                 <button class="difficulty-btn" onclick="startGame('normal')">普通</button>
                 <button class="difficulty-btn" onclick="startGame('hard')">困难</button>
             </div>
             <div style="margin-top: 14px;">
-                <button class="difficulty-btn solo-btn" onclick="startGame('solo')">单人 · 河道计时</button>
+                <button class="difficulty-btn solo-btn" onclick="startGame('solo')">单人 · 无尽河道</button>
             </div>
             <p style="margin-top:26px; font-size:0.9rem; color:#94a3b8; display:none;">致敬 OutRun 街机画风 × Three.js 海浪物理
             </p>
@@ -461,16 +461,24 @@
         let countdownValue = 3;
         let countdownTimer = 0;
 
-        // 模式: 'race' 竞速(浮标赛道 + 礁石 + 对手) / 'solo' 单人河道(无礁石无对手, 计时)
+        // 模式: 'race' 竞速(浮标赛道 + 礁石 + 对手) / 'solo' 单人河道(无礁石无对手, 无尽计时)
         let gameMode = 'race';
         let raceTime = 0;
-        let riverGroup = null;
+        // 无尽河道: 按分块(chunk)生成/销毁的河岸网格
+        let riverChunks = [];
+        let riverT = 0;          // 河道参数化里程 (世界单位, z = -riverT)
+        let nextBuoyIdx = 1;     // 下一个待放浮标的路径点索引 (全局连续)
         // 河道半宽 (中心线到岸线), 出界判定阈值 CONFIG.trackWidth 略小于它
         const RIVER_HALF_WIDTH = 26;
-        // 单人最佳成绩 (毫秒精度无关, 单位: 秒), 存本地
+        const RIVER_CHUNK_POINTS = 20;   // 每块路径点数 (20 点 = 500 单位)
+        const RIVER_SEG_LEN = 25;        // 路径点间距 (世界单位)
+        // 无尽蜿蜒中心线: 双正弦叠加 (无周期重复感), 振幅 46+18 < 64, 河道+岸带容纳得下
+        const RIVER_AMP1 = 46, RIVER_W1 = 2 * Math.PI / 500;
+        const RIVER_AMP2 = 18, RIVER_W2 = 2 * Math.PI / 1130;
+        // 单人最佳成绩: 无尽模式 = 最长坚持时间 (秒), 存本地
         let bestSoloTime = 0;
         try {
-            bestSoloTime = parseFloat(localStorage.getItem('wavemotor.soloBest')) || 0;
+            bestSoloTime = parseFloat(localStorage.getItem('wavemotor.soloBestEndless')) || 0;
         } catch (e) { bestSoloTime = 0; }
 
         const ASSETS = {};
@@ -575,42 +583,26 @@
             scene.add(waterMesh);
         }
 
-        // --- 赛道: 竞速模式 = 随机浮标赛道; 单人模式 = 正弦蜿蜒河道 ---
+        // --- 赛道: 竞速模式 = 固定随机浮标赛道; 单人模式 = 无尽蜿蜒河道 (分块生成) ---
         function segmentHeading(i) {
             const p0 = trackPath[Math.max(0, i - 1)];
             const p1 = trackPath[Math.min(trackPath.length - 1, i + 1)];
             return Math.atan2(-(p1.x - p0.x), -(p1.z - p0.z));
         }
 
-        function generateTrack(river) {
+        function generateTrack() {
             trackPath.length = 0;
-
-            if (river) {
-                // 沿 -z 正弦蜿蜒, 全长 750 世界单位; 前 120 单位缓入成直道, 与出生朝向一致
-                const COUNT = 31, SEG_LEN = 25;
-                const AMP = 62;
-                const k = 2 * Math.PI * 1.5 / ((COUNT - 1) * SEG_LEN);
-                for (let i = 0; i < COUNT; i++) {
-                    const t = i * SEG_LEN;
-                    const ramp = Math.min(1, t / 120);
-                    const ease = ramp * ramp * (3 - 2 * ramp);
-                    trackPath.push({ x: AMP * Math.sin(k * t) * ease, z: -t });
-                }
-            } else {
-                let x = 0, z = 0, angle = 0;
-                const segLength = 60;
-                for (let i = 0; i < 60; i++) {
-                    trackPath.push({ x, z });
-                    angle += (Math.random() - 0.5) * 0.8;
-                    if (Math.abs(angle) > 1.2) angle *= 0.8;
-                    x += Math.sin(angle) * segLength;
-                    z -= Math.cos(angle) * segLength;
-                }
+            let x = 0, z = 0, angle = 0;
+            const segLength = 60;
+            for (let i = 0; i < 60; i++) {
+                trackPath.push({ x, z });
+                angle += (Math.random() - 0.5) * 0.8;
+                if (Math.abs(angle) > 1.2) angle *= 0.8;
+                x += Math.sin(angle) * segLength;
+                z -= Math.cos(angle) * segLength;
             }
 
-            // 浮标: 河道模式每隔 3 个路径点放一对 (约每 75 单位), 竞速模式每个点都放
-            const step = river ? 3 : 1;
-            for (let i = 1; i < trackPath.length - 1; i += step) {
+            for (let i = 1; i < trackPath.length - 1; i++) {
                 const a = segmentHeading(i);
                 spawnBuoy(trackPath[i].x, trackPath[i].z, a, -20, 'red');
                 spawnBuoy(trackPath[i].x, trackPath[i].z, a, 20, 'green');
@@ -619,6 +611,73 @@
             const endA = segmentHeading(trackPath.length - 1);
             spawnBuoy(last.x, last.z, endA, -20, 'finish');
             spawnBuoy(last.x, last.z, endA, 20, 'finish');
+        }
+
+        // --- 无尽河道: 参数化中心线 + 按块生成河岸/树木/浮标 ---
+        function extendTrack(n) {
+            const startIdx = trackPath.length;
+            for (let i = 0; i < n; i++) {
+                riverT += RIVER_SEG_LEN;
+                const ramp = Math.min(1, riverT / 120);   // 前 120 单位缓入成直道
+                const ease = ramp * ramp * (3 - 2 * ramp);
+                const x = (RIVER_AMP1 * Math.sin(RIVER_W1 * riverT)
+                    + RIVER_AMP2 * Math.sin(RIVER_W2 * riverT + 1.7)) * ease;
+                trackPath.push({ x, z: -riverT });
+            }
+            return startIdx;
+        }
+
+        function buildRiverChunk() {
+            const startIdx = extendTrack(RIVER_CHUNK_POINTS);
+            const endIdx = trackPath.length - 1;
+            const meshes = [];
+            const rand = makeRandom(20261027 + startIdx * 7919);
+            // 两岸 (从 startIdx-1 起建, 与上一块共享边界点, 接缝无缝)
+            meshes.push(buildBankRibbon(Math.max(0, startIdx - 1), endIdx, 1, rand));
+            meshes.push(buildBankRibbon(Math.max(0, startIdx - 1), endIdx, -1, rand));
+            const trees = buildBankTrees(startIdx, endIdx, rand);
+            if (trees) meshes.push(trees);
+            meshes.forEach(m => scene.add(m));
+
+            // 浮标: 每 3 个路径点一对 (约 75 单位), 全局连续索引保证间距均匀
+            while (nextBuoyIdx <= endIdx - 1) {
+                const i = nextBuoyIdx;
+                if (i >= 1) {
+                    const a = segmentHeading(i);
+                    spawnBuoy(trackPath[i].x, trackPath[i].z, a, -20, 'red');
+                    spawnBuoy(trackPath[i].x, trackPath[i].z, a, 20, 'green');
+                }
+                nextBuoyIdx += 3;
+            }
+
+            riverChunks.push({ startIdx, endIdx, meshes });
+        }
+
+        // 玩家前进时: 前方补块, 后方拆块, 远处浮标回收
+        function updateRiverChunks() {
+            let maxP = playerBike ? playerBike.progress : 0;
+            for (let b of bikes) if (b.progress > maxP) maxP = b.progress;
+
+            while (trackPath.length - 1 < maxP + 45) buildRiverChunk();
+
+            for (let i = riverChunks.length - 1; i >= 0; i--) {
+                const ch = riverChunks[i];
+                if (ch.endIdx < maxP - 25) {
+                    ch.meshes.forEach(m => {
+                        scene.remove(m);
+                        if (m.geometry) m.geometry.dispose();
+                        if (m.material) m.material.dispose();
+                    });
+                    riverChunks.splice(i, 1);
+                }
+            }
+
+            for (let i = buoys.length - 1; i >= 0; i--) {
+                if (playerBike && buoys[i].position.distanceTo(playerBike.pos) > 380) {
+                    scene.remove(buoys[i]);
+                    buoys.splice(i, 1);
+                }
+            }
         }
 
         function spawnBuoy(bx, bz, angle, offset, type) {
@@ -677,8 +736,15 @@
             return BANK_PROFILE[BANK_PROFILE.length - 1].y;
         }
 
-        function buildBankRibbon(side, rand) {
-            const N = trackPath.length;
+        // 确定性抖动: 只依赖 (行号 r, 全局路径索引 i), 保证相邻分块在接缝处顶点完全一致, 不裂缝
+        function jitterAt(r, i) {
+            const s = Math.sin(i * 12.9898 + r * 78.233) * 43758.5453;
+            return (s - Math.floor(s)) - 0.5; // [-0.5, 0.5]
+        }
+
+        // 构建河岸带 [i0, i1] 区间 (闭区间), 共享边界顶点与相邻块无缝衔接
+        function buildBankRibbon(i0, i1, side, rand) {
+            const N = i1 - i0 + 1;
             const R = BANK_PROFILE.length;
             const positions = [], colors = [], indices = [];
             const c = new THREE.Color();
@@ -687,11 +753,12 @@
                 const row = BANK_PROFILE[r];
                 c.setHex(row.color);
                 for (let i = 0; i < N; i++) {
-                    const p = trackPath[i];
-                    const n = pathNormalAt(i, side);
+                    const gi = i0 + i; // 全局路径索引
+                    const p = trackPath[gi];
+                    const n = pathNormalAt(gi, side);
                     // 岸线一行不加扰动, 其余各行做轻微高低起伏, 避免像一块光滑塑料
                     // (抖动幅度必须小: 过大会在背光面形成大片死黑三角形)
-                    const jitter = r === 0 ? 0 : (rand() - 0.5) * (0.1 + r * 0.22);
+                    const jitter = r === 0 ? 0 : jitterAt(r, gi) * 2 * (0.1 + r * 0.22);
                     positions.push(
                         p.x + n.x * (RIVER_HALF_WIDTH + row.d),
                         row.y + jitter,
@@ -723,22 +790,21 @@
             return mesh;
         }
 
-        // 岸上植被: 所有低多边形锥体合并成一个几何体, 只占 1 次绘制调用
-        function buildBankTrees(rand) {
+        // 岸上植被 [i0, i1]: 所有低多边形锥体合并成一个几何体, 只占 1 次绘制调用
+        function buildBankTrees(i0, i1, rand) {
             const cone = new THREE.ConeGeometry(1.8, 6.5, 6).toNonIndexed();
             const src = cone.attributes.position.array;
             const positions = [];
-            const N = trackPath.length;
 
-            for (let i = 1; i < N; i++) {
+            for (let gi = i0; gi <= i1; gi++) {
                 for (const side of [-1, 1]) {
                     if (rand() > 0.72) continue;
-                    const n = pathNormalAt(i, side);
+                    const n = pathNormalAt(gi, side);
                     const d = RIVER_HALF_WIDTH + 12 + rand() * 30;
                     const y = bankHeightAt(d - RIVER_HALF_WIDTH) - 0.4;
                     const s = 0.7 + rand() * 0.95;
-                    const px = trackPath[i].x + n.x * d;
-                    const pz = trackPath[i].z + n.z * d;
+                    const px = trackPath[gi].x + n.x * d;
+                    const pz = trackPath[gi].z + n.z * d;
                     for (let v = 0; v < src.length; v += 3) {
                         positions.push(px + src[v] * s, y + (src[v + 1] + 3.25) * s, pz + src[v + 2] * s);
                     }
@@ -755,16 +821,6 @@
             const mesh = new THREE.Mesh(geo, mat);
             cone.dispose();
             return mesh;
-        }
-
-        function buildRiver() {
-            riverGroup = new THREE.Group();
-            const rand = makeRandom(20261027);
-            riverGroup.add(buildBankRibbon(1, rand));
-            riverGroup.add(buildBankRibbon(-1, rand));
-            const trees = buildBankTrees(rand);
-            if (trees) riverGroup.add(trees);
-            scene.add(riverGroup);
         }
 
         function spawnObstacles() {
@@ -795,24 +851,26 @@
             obstacles.length = 0;
             buoys.forEach(b => scene.remove(b));
             buoys.length = 0;
-            if (riverGroup) {
-                riverGroup.traverse(o => {
-                    if (o.geometry) o.geometry.dispose();
-                    if (o.material) o.material.dispose();
-                });
-                scene.remove(riverGroup);
-                riverGroup = null;
-            }
+            riverChunks.forEach(ch => ch.meshes.forEach(m => {
+                scene.remove(m);
+                if (m.geometry) m.geometry.dispose();
+                if (m.material) m.material.dispose();
+            }));
+            riverChunks.length = 0;
             trackPath.length = 0;
+            riverT = 0;
+            nextBuoyIdx = 1;
         }
 
         function buildWorld() {
             clearWorld();
             const solo = gameMode === 'solo';
-            generateTrack(solo);
             if (solo) {
-                buildRiver();      // 河道模式: 不放礁石
+                // 无尽河道: 先铺 3 块 (1500 单位), 之后随玩家前进动态补块
+                trackPath.push({ x: 0, z: 0 });
+                for (let i = 0; i < 3; i++) buildRiverChunk();
             } else {
+                generateTrack();
                 spawnObstacles();
             }
             spawnBikes(solo);
@@ -1264,7 +1322,7 @@
             document.getElementById('rank-box').style.display = gameMode === 'solo' ? 'none' : 'block';
             document.getElementById('time-box').style.display = gameMode === 'solo' ? 'block' : 'none';
             document.getElementById('out-label').innerText = gameMode === 'solo' ? '回到河道！' : '回到赛道！';
-            document.getElementById('time-val').innerText = '0.0';
+            document.getElementById('time-val').innerText = '00:00';
 
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('hud').style.display = 'flex';
@@ -1299,18 +1357,26 @@
             return d;
         }
 
-        // 计算某位置处赛道的前进方向 (用于松开方向键后自动回正)
-        function trackDirectionAt(pos) {
-            let best = 0, bestD = Infinity;
-            for (let i = 0; i < trackPath.length; i++) {
+        // 在 hint 附近窗口内找最近路径点索引 (无尽赛道下避免全量扫描)
+        function nearestTrackIndex(pos, hint) {
+            const start = Math.max(0, (hint || 0) - 12);
+            const end = Math.min(trackPath.length - 1, (hint || 0) + 60);
+            let best = start, bestD = Infinity;
+            for (let i = start; i <= end; i++) {
                 const p = trackPath[i];
                 const d = Math.pow(p.x - pos.x, 2) + Math.pow(p.z - pos.z, 2);
                 if (d < bestD) { bestD = d; best = i; }
             }
+            return best;
+        }
+
+        // 计算某位置处赛道的前进方向 (用于松开方向键后自动回正)
+        function trackDirectionAt(pos) {
+            const best = nearestTrackIndex(pos, playerBike ? playerBike.progress : 0);
             const cur = trackPath[best];
             const nxt = trackPath[Math.min(best + 1, trackPath.length - 1)];
             const prv = trackPath[Math.max(best - 1, 0)];
-            // 优先用 当前点→下一点, 终点处退化为 前一点→当前点
+            // 优先用 当前点→下一点, 起点终点处退化
             const hasFwd = (nxt.x !== cur.x || nxt.z !== cur.z);
             const from = hasFwd ? cur : prv;
             const to = hasFwd ? nxt : cur;
@@ -1389,13 +1455,11 @@
                     }
                 }
 
-                // 出界判定
+                // 出界判定 (窗口内最近点, 避免无尽赛道全量扫描)
                 if (currentState === GAME_STATE.RACING && !playerBike.crashing) {
-                    let minD = 10000;
-                    for (let p of trackPath) {
-                        const d = Math.sqrt(Math.pow(p.x - playerBike.pos.x, 2) + Math.pow(p.z - playerBike.pos.z, 2));
-                        if (d < minD) minD = d;
-                    }
+                    const nearIdx = nearestTrackIndex(playerBike.pos, playerBike.progress);
+                    const np = trackPath[nearIdx];
+                    const minD = Math.sqrt(Math.pow(np.x - playerBike.pos.x, 2) + Math.pow(np.z - playerBike.pos.z, 2));
                     const warningEl = document.getElementById('warning-overlay');
                     if (minD > CONFIG.trackWidth) {
                         warningEl.style.display = 'flex';
@@ -1403,7 +1467,7 @@
                         document.getElementById('out-timer').innerText = (5.0 - outOfBoundsTime).toFixed(1);
                         if (outOfBoundsTime > 5.0) {
                             playerBike.wipeout();
-                            endGame("偏离赛道，取消资格！");
+                            endGame(gameMode === 'solo' ? "冲出河道，GAME OVER！" : "偏离赛道，取消资格！");
                         }
                     } else {
                         warningEl.style.display = 'none';
@@ -1411,22 +1475,18 @@
                     }
                 }
 
-                // 实时进度与排名 (沿赛道最近点索引)
-                bikes.forEach(b => {
-                    let best = 0, bestD = 10000;
-                    for (let i = 0; i < trackPath.length; i++) {
-                        const p = trackPath[i];
-                        const d = Math.pow(p.x - b.pos.x, 2) + Math.pow(p.z - b.pos.z, 2);
-                        if (d < bestD) { bestD = d; best = i; }
-                    }
-                    b.progress = best;
-                });
-                const alive = bikes.filter(b => !b.dead && !b.crashing);
-                const sorted = [...alive].sort((a, c) => c.progress - a.progress);
+                // 实时进度 (窗口化最近点索引)
+                bikes.forEach(b => { b.progress = nearestTrackIndex(b.pos, b.progress); });
+
+                // 无尽河道: 补前方块 / 拆后方块 / 回收远处浮标
+                if (gameMode === 'solo') updateRiverChunks();
+
                 if (!playerBike.crashing) {
                     if (gameMode === 'solo') {
-                        document.getElementById('time-val').innerText = raceTime.toFixed(1);
+                        document.getElementById('time-val').innerText = fmtTime(raceTime);
                     } else {
+                        const alive = bikes.filter(b => !b.dead && !b.crashing);
+                        const sorted = [...alive].sort((a, c) => c.progress - a.progress);
                         const rank = sorted.indexOf(playerBike) + 1;
                         document.getElementById('rank-val').innerText = rank;
                         document.getElementById('total-riders').innerText = alive.length;
@@ -1437,15 +1497,13 @@
                 const kmh = Math.max(0, Math.round(playerBike.speed * 72));
                 document.getElementById('speed-val').innerText = kmh;
 
-                // 终点判定
-                if (currentState === GAME_STATE.RACING && playerBike.progress >= trackPath.length - 2) {
+                // 终点判定 (仅竞速模式; 无尽河道没有终点)
+                if (currentState === GAME_STATE.RACING && gameMode !== 'solo' && playerBike.progress >= trackPath.length - 2) {
                     currentState = GAME_STATE.FINISHED;
-                    if (gameMode === 'solo') {
-                        finishSolo();
-                    } else {
-                        const rank = sorted.indexOf(playerBike) + 1;
-                        endGame("以第 " + rank + " 名冲过终点！", true);
-                    }
+                    const alive = bikes.filter(b => !b.dead && !b.crashing);
+                    const sorted = [...alive].sort((a, c) => c.progress - a.progress);
+                    const rank = sorted.indexOf(playerBike) + 1;
+                    endGame("以第 " + rank + " 名冲过终点！", true);
                 }
             }
 
@@ -1509,27 +1567,30 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // 单人: 结算用时并更新本地最佳成绩
-        function finishSolo() {
-            const t = raceTime;
-            let msg = "跑完河道！用时 " + t.toFixed(1) + " 秒";
-            if (!bestSoloTime || t < bestSoloTime) {
-                bestSoloTime = t;
-                try { localStorage.setItem('wavemotor.soloBest', String(t)); } catch (e) { }
-                msg += " · 新纪录！";
-            } else {
-                msg += " · 最佳 " + bestSoloTime.toFixed(1) + " 秒";
+        function fmtTime(s) {
+            const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+            return String(m).padStart(2, '0') + ":" + String(sec).padStart(2, '0');
+        }
+
+        // 单人无尽河道: 摔车即结算, 记录坚持时长与本地最佳
+        function soloResultSuffix() {
+            if (gameMode !== 'solo' || raceTime <= 0) return "";
+            if (!bestSoloTime || raceTime > bestSoloTime) {
+                bestSoloTime = raceTime;
+                try { localStorage.setItem('wavemotor.soloBestEndless', String(bestSoloTime)); } catch (e) { }
+                return " · 本次坚持 " + fmtTime(raceTime) + "，新纪录！";
             }
-            endGame(msg, true);
+            return " · 本次坚持 " + fmtTime(raceTime) + "（最佳 " + fmtTime(bestSoloTime) + "）";
         }
 
         function endGame(msg, win = false) {
+            const suffix = soloResultSuffix();
             setTimeout(() => {
                 const overlay = document.getElementById('overlay');
                 overlay.style.display = 'flex';
                 document.getElementById('overlay-title').innerText = win ? "FINISH!" : "GAME OVER";
                 document.getElementById('overlay-title').style.color = win ? "#4ade80" : "#ef4444";
-                document.getElementById('overlay-msg').innerText = msg;
+                document.getElementById('overlay-msg').innerText = msg + suffix;
             }, 600);
         }
 
