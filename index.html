@@ -28,20 +28,32 @@
 
         /* Start Screen */
         #start-screen {
-            background: linear-gradient(180deg, rgba(0,15,40,0.97), rgba(0,40,80,0.97));
+            background:
+                linear-gradient(180deg, rgba(0,15,40,0.70) 0%, rgba(0,25,60,0.45) 40%, rgba(2,8,26,0.92) 100%),
+                url('assets/rider.jpg') center 18% / cover no-repeat;
             z-index: 30;
             pointer-events: auto;
             align-items: center;
             justify-content: center;
             text-align: center;
         }
+        .menu-panel {
+            background: rgba(2, 10, 30, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 36px 48px 30px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+            max-width: 720px;
+        }
         #start-screen h1 {
             font-size: 4.5rem; color: #ff5555; margin-bottom: 6px;
             text-transform: uppercase; letter-spacing: 6px;
-            text-shadow: 0 0 30px rgba(255,80,80,0.55);
+            text-shadow: 0 0 30px rgba(255,80,80,0.65), 0 4px 16px rgba(0,0,0,0.8);
         }
-        #start-screen h2 { font-size: 1.4rem; color: #7dd3fc; margin: 0 0 14px; font-weight: normal; letter-spacing: 8px; }
-        #start-screen p { color: #94a3b8; font-size: 1.1rem; margin-bottom: 30px; max-width: 620px; line-height: 1.7; }
+        #start-screen h2 { font-size: 1.4rem; color: #ffffff; margin: 0 0 14px; font-weight: normal; letter-spacing: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+        #start-screen p { color: #dbe4ef; font-size: 1.1rem; margin-bottom: 30px; max-width: 620px; line-height: 1.7; text-shadow: 0 1px 6px rgba(0,0,0,0.7); }
 
         .difficulty-btn {
             background: transparent;
@@ -207,16 +219,18 @@
 
     <!-- Start Screen -->
     <div id="start-screen" class="ui-layer">
-        <h1>WaveMotor</h1>
-        <h2>浪 花 机 车 · 水 上 狂 飙</h2>
-        <p>骑着摩托在水面上狂飙！穿过红绿浮标之间的赛道，<br>
-        小心巨浪把你掀翻、礁石把你撞落水。偏离赛道 5 秒将被取消资格！</p>
-        <div>
-            <button class="difficulty-btn" onclick="startGame('easy')">简单</button>
-            <button class="difficulty-btn" onclick="startGame('normal')">普通</button>
-            <button class="difficulty-btn" onclick="startGame('hard')">困难</button>
+        <div class="menu-panel">
+            <h1>WaveMotor</h1>
+            <h2>浪 花 机 车 · 水 上 狂 飙</h2>
+            <p>骑着摩托在水面上狂飙！穿过红绿浮标之间的赛道，<br>
+            小心巨浪把你掀翻、礁石把你撞落水。偏离赛道 5 秒将被取消资格！</p>
+            <div>
+                <button class="difficulty-btn" onclick="startGame('easy')">简单</button>
+                <button class="difficulty-btn" onclick="startGame('normal')">普通</button>
+                <button class="difficulty-btn" onclick="startGame('hard')">困难</button>
+            </div>
+            <p style="margin-top:26px; font-size:0.9rem; color:#94a3b8;">致敬 OutRun 街机画风 × Three.js 海浪物理</p>
         </div>
-        <p style="margin-top:26px; font-size:0.9rem; color:#64748b;">致敬 OutRun 街机画风 × Three.js 海浪物理</p>
     </div>
 
     <!-- HUD -->
