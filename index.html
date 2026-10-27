@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>WaveMotor 浪花机车 · 水上摩托竞速</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', 'Microsoft YaHei', Tahoma, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        canvas { display: block; width: 100vw; height: 100vh; }
+
+        .ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Start Screen */
+        #start-screen {
+            background: linear-gradient(180deg, rgba(0,15,40,0.97), rgba(0,40,80,0.97));
+            z-index: 30;
+            pointer-events: auto;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        #start-screen h1 {
+            font-size: 4.5rem; color: #ff5555; margin-bottom: 6px;
+            text-transform: uppercase; letter-spacing: 6px;
+            text-shadow: 0 0 30px rgba(255,80,80,0.55);
+        }
+        #start-screen h2 { font-size: 1.4rem; color: #7dd3fc; margin: 0 0 14px; font-weight: normal; letter-spacing: 8px; }
+        #start-screen p { color: #94a3b8; font-size: 1.1rem; margin-bottom: 30px; max-width: 620px; line-height: 1.7; }
+
+        .difficulty-btn {
+            background: transparent;
+            border: 2px solid #ff5555;
+            color: #ff5555;
+            padding: 15px 42px;
+            margin: 10px;
+            font-size: 1.4rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+            letter-spacing: 3px;
+            font-family: inherit;
+        }
+        .difficulty-btn:hover { background: #ff5555; color: #fff; transform: translateY(-3px); box-shadow: 0 0 22px rgba(255,85,85,0.45); }
+
+        /* HUD */
+        .hud-top { display: flex; justify-content: space-between; align-items: flex-start; }
+
+        .rank-box {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 14px 24px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            border: 2px solid #ff5555;
+        }
+        .rank-title { font-size: 0.8rem; color: #94a3b8; letter-spacing: 2px; }
+        .rank-value { font-size: 2.6rem; font-weight: bold; color: #fff; line-height: 1.1; }
+
+        .speed-box {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 14px 24px;
+            border-radius: 10px;
+            color: white;
+            text-align: right;
+            border: 2px solid #38bdf8;
+        }
+        .speed-title { font-size: 0.8rem; color: #94a3b8; letter-spacing: 2px; }
+        .speed-value { font-size: 2.6rem; font-weight: bold; color: #38bdf8; line-height: 1.1; }
+        .speed-unit { font-size: 1rem; color: #7dd3fc; }
+
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 1rem;
+            text-shadow: 1px 1px 3px black;
+            letter-spacing: 1px;
+        }
+
+        /* Countdown */
+        #countdown {
+            display: none;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 10rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 50px rgba(255,255,255,0.8);
+            z-index: 25;
+            pointer-events: none;
+        }
+
+        /* Warning Overlay */
+        #warning-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border: 20px solid rgba(255, 60, 60, 0.6);
+            box-sizing: border-box;
+            z-index: 15;
+            pointer-events: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #warning-msg {
+            background: rgba(220,38,38,0.85);
+            color: white;
+            padding: 20px 40px;
+            font-size: 2rem;
+            font-weight: bold;
+            border-radius: 10px;
+        }
+
+        /* Game Over / Win Overlay */
+        #overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 10, 30, 0.9);
+            z-index: 40;
+            pointer-events: auto;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+        }
+        #overlay h1 { font-size: 5rem; margin: 0; letter-spacing: 6px; text-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
+        #overlay p { font-size: 1.5rem; margin: 20px 0 40px; color: #cbd5e1; }
+
+        .restart-btn {
+            padding: 15px 50px;
+            font-size: 1.4rem;
+            background: #ff5555;
+            border: none;
+            border-radius: 50px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 2px;
+            transition: all 0.2s;
+            box-shadow: 0 0 20px rgba(255,85,85,0.4);
+            font-family: inherit;
+        }
+        .restart-btn:hover { background: #fff; color: #d21f1f; transform: scale(1.05); }
+
+        /* Mobile Controls */
+        #mobile-controls {
+            display: none;
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 150px;
+            pointer-events: none;
+            z-index: 50;
+            justify-content: center;
+            padding: 0 40px;
+            box-sizing: border-box;
+        }
+        #joystick-zone {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: auto;
+            touch-action: none;
+        }
+        #joystick-knob {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 85, 85, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px rgba(255, 85, 85, 0.5);
+            pointer-events: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="ui-layer">
+        <h1>WaveMotor</h1>
+        <h2>浪 花 机 车 · 水 上 狂 飙</h2>
+        <p>骑着摩托在水面上狂飙！穿过红绿浮标之间的赛道，<br>
+        小心巨浪把你掀翻、礁石把你撞落水。偏离赛道 5 秒将被取消资格！</p>
+        <div>
+            <button class="difficulty-btn" onclick="startGame('easy')">简单</button>
+            <button class="difficulty-btn" onclick="startGame('normal')">普通</button>
+            <button class="difficulty-btn" onclick="startGame('hard')">困难</button>
+        </div>
+        <p style="margin-top:26px; font-size:0.9rem; color:#64748b;">致敬 OutRun 街机画风 × Three.js 海浪物理</p>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="ui-layer" style="display: none;">
+        <div class="hud-top">
+            <div class="rank-box">
+                <div class="rank-title">当前排名</div>
+                <div><span id="rank-val" class="rank-value">1</span><span style="font-size:1.2rem;color:#aaa;"> / <span id="total-riders">10</span></span></div>
+            </div>
+            <div class="speed-box">
+                <div class="speed-title">速度</div>
+                <div><span id="speed-val" class="speed-value">0</span><span class="speed-unit"> km/h</span></div>
+            </div>
+        </div>
+        <div class="controls-hint">
+            ⬆️ 油门 &nbsp; ⬇️ 刹车 &nbsp; ⬅️➡️ 转向（车身会压弯倾斜）
+        </div>
+    </div>
+
+    <div id="countdown">3</div>
+
+    <div id="warning-overlay">
+        <div id="warning-msg">回到赛道！ <span id="out-timer">5.0</span></div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="overlay">
+        <h1 id="overlay-title">GAME OVER</h1>
+        <p id="overlay-msg">落水了！</p>
+        <button class="restart-btn" onclick="resetGame()">返回主菜单</button>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div id="mobile-controls">
+        <div id="joystick-zone">
+            <div id="joystick-knob"></div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // WaveMotor 浪花机车
+        // 骨架改造自开源项目 fraher/ocean_battle_racing (Three.js 水面波浪物理)
+        // 美术风格致敬 jakesgordon/javascript-racer (OutRun 街机赛车)
+        // 载具: 水上狂飙的摩托 (法拉利红涂装 + 压弯倾斜物理)
+        // ============================================================
+
+        const CONFIG = {
+            waveSpeed: 1.0,
+            waveHeight: 1.2,
+            choppiness: 1.0,
+            bikeAccel: 2.2,
+            maxSpeed: 3.4,
+            turnSpeed: 0.042,
+            cameraLag: 0.08,
+            trackWidth: 35,
+            leanAmount: 0.55   // 压弯最大倾角
+        };
+
+        const GAME_STATE = { MENU: 0, COUNTDOWN: 1, RACING: 2, FINISHED: 3 };
+
+        // --- GLOBALS ---
+        let scene, camera, renderer, clock;
+        let waterMesh, waterGeo, originalPositions;
+        let bikes = [];
+        let playerBike = null;
+        let obstacles = [];
+        let buoys = [];
+        let trackPath = [];
+
+        let currentState = GAME_STATE.MENU;
+        let outOfBoundsTime = 0;
+        let countdownValue = 3;
+        let countdownTimer = 0;
+
+        const ASSETS = {};
+        const keys = { w:false, s:false, a:false, d:false };
+
+        // --- INIT ---
+        function init() {
+            clock = new THREE.Clock();
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 60, 420);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            document.body.appendChild(renderer.domElement);
+
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x335577, 0.85);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfff4e0, 1.0);
+            dirLight.position.set(-100, 200, -100);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.top = 200;
+            dirLight.shadow.camera.bottom = -200;
+            dirLight.shadow.camera.left = -200;
+            dirLight.shadow.camera.right = 200;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            createSharedAssets();
+            createWater();
+            generateTrack();
+            spawnObstacles();
+            spawnBikes();
+
+            window.addEventListener('resize', onResize);
+            window.addEventListener('keydown', (e) => handleKey(e, true));
+            window.addEventListener('keyup', (e) => handleKey(e, false));
+
+            if (isMobile()) {
+                document.querySelector('.controls-hint').style.display = 'none';
+                setupMobileControls();
+            }
+
+            animate();
+        }
+
+        // --- 摩托共享材质 (致敬 OutRun 红色法拉利配色) ---
+        function createSharedAssets() {
+            ASSETS.tireMat = new THREE.MeshStandardMaterial({ color: 0x181818, roughness: 0.9 });
+            ASSETS.frameMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.6, metalness: 0.4 });
+            ASSETS.chromeMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.8 });
+            ASSETS.riderMat = new THREE.MeshStandardMaterial({ color: 0xd42a2a, roughness: 0.7 }); // 红色骑行服
+            ASSETS.helmetMat = new THREE.MeshStandardMaterial({ color: 0xf5d020, roughness: 0.3 }); // 黄色头盔
+            ASSETS.skinMat = new THREE.MeshStandardMaterial({ color: 0xe8b088, roughness: 0.8 });
+            ASSETS.playerBodyMat = new THREE.MeshStandardMaterial({ color: 0xd40000, roughness: 0.35, metalness: 0.3 }); // 法拉利红
+            ASSETS.enemyBodyMats = [
+                new THREE.MeshStandardMaterial({ color: 0x2266cc, roughness: 0.35, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0x22aa44, roughness: 0.35, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0xdd8800, roughness: 0.35, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0x8844aa, roughness: 0.35, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0x00aabb, roughness: 0.35, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0x334455, roughness: 0.35, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0xcc44aa, roughness: 0.35, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0x88aa22, roughness: 0.35, metalness: 0.3 }),
+                new THREE.MeshStandardMaterial({ color: 0x666677, roughness: 0.35, metalness: 0.3 })
+            ];
+
+            ASSETS.buoyGeo = new THREE.ConeGeometry(0.8, 2, 16);
+            ASSETS.buoyMatRed = new THREE.MeshStandardMaterial({ color: 0xff3333 });
+            ASSETS.buoyMatGreen = new THREE.MeshStandardMaterial({ color: 0x33ff33 });
+            ASSETS.buoyMatFinish = new THREE.MeshStandardMaterial({ color: 0xffd700, emissive: 0xaa6600 });
+
+            ASSETS.rockGeo = new THREE.DodecahedronGeometry(2, 0);
+            ASSETS.rockMat = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.9 });
+        }
+
+        // --- 水面 (骨架原版: 顶点波浪 + 深浅渐变着色) ---
+        function createWater() {
+            waterGeo = new THREE.PlaneGeometry(600, 600, 150, 150);
+            const count = waterGeo.attributes.position.count;
+            originalPositions = new Float32Array(count * 3);
+            for (let i = 0; i < count * 3; i++) originalPositions[i] = waterGeo.attributes.position.array[i];
+
+            waterGeo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+
+            const waterMat = new THREE.MeshStandardMaterial({
+                vertexColors: true,
+                roughness: 0.1,
+                metalness: 0.1,
+                flatShading: false,
+                side: THREE.DoubleSide
+            });
+
+            waterMesh = new THREE.Mesh(waterGeo, waterMat);
+            waterMesh.rotation.x = -Math.PI / 2;
+            waterMesh.receiveShadow = true;
+            scene.add(waterMesh);
+        }
+
+        // --- 赛道与浮标 (骨架原版) ---
+        function generateTrack() {
+            let x = 0, z = 0, angle = 0;
+            const segLength = 60;
+
+            for (let i = 0; i < 60; i++) {
+                trackPath.push({ x, z });
+                if (i > 0) {
+                    spawnBuoy(x, z, angle, -20, 'red');
+                    spawnBuoy(x, z, angle, 20, 'green');
+                }
+                angle += (Math.random() - 0.5) * 0.8;
+                if (Math.abs(angle) > 1.2) angle *= 0.8;
+                x += Math.sin(angle) * segLength;
+                z -= Math.cos(angle) * segLength;
+            }
+            spawnBuoy(x, z, angle, -20, 'finish');
+            spawnBuoy(x, z, angle, 20, 'finish');
+        }
+
+        function spawnBuoy(bx, bz, angle, offset, type) {
+            const px = bx + Math.cos(angle) * offset;
+            const pz = bz + Math.sin(angle) * offset;
+            const mesh = new THREE.Mesh(
+                ASSETS.buoyGeo,
+                type === 'red' ? ASSETS.buoyMatRed : (type === 'green' ? ASSETS.buoyMatGreen : ASSETS.buoyMatFinish)
+            );
+            mesh.position.set(px, 0, pz);
+            mesh.castShadow = true;
+            mesh.userData = { baseY: 0, offset: Math.random() * 100 };
+            scene.add(mesh);
+            buoys.push(mesh);
+        }
+
+        function spawnObstacles() {
+            for (let i = 0; i < 40; i++) {
+                const segment = Math.floor(Math.random() * (trackPath.length - 6)) + 4;
+                const point = trackPath[segment];
+                const ox = point.x + (Math.random() - 0.5) * 50;
+                const oz = point.z + (Math.random() - 0.5) * 50;
+                const scale = 1 + Math.random() * 2;
+                const rock = new THREE.Mesh(ASSETS.rockGeo, ASSETS.rockMat);
+                rock.position.set(ox, -1, oz);
+                rock.scale.set(scale, scale, scale);
+                rock.rotation.set(Math.random(), Math.random(), Math.random());
+                rock.castShadow = true;
+                rock.receiveShadow = true;
+                rock.userData = { radius: 2 * scale };
+                scene.add(rock);
+                obstacles.push(rock);
+            }
+        }
+
+        // --- 构建一辆低多边形水上摩托 (骑手 + 车身) ---
+        function buildBikeMesh(bodyMat) {
+            const root = new THREE.Group();
+
+            const wheelGeo = new THREE.TorusGeometry(0.55, 0.2, 10, 18);
+            const discGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.12, 16);
+
+            function makeWheel(x, y, z) {
+                const wrapper = new THREE.Group();
+                wrapper.position.set(x, y, z);
+                const tire = new THREE.Mesh(wheelGeo, ASSETS.tireMat);
+                tire.rotation.y = Math.PI / 2; // 轮面朝向车头方向, 轮轴沿 x
+                tire.castShadow = true;
+                wrapper.add(tire);
+                const disc = new THREE.Mesh(discGeo, ASSETS.chromeMat);
+                disc.rotation.z = Math.PI / 2;
+                wrapper.add(disc);
+                return wrapper;
+            }
+
+            // 后轮 / 前轮 (前轮带转向叉)
+            const rearWheel = makeWheel(0, 0.55, 1.15);
+            root.add(rearWheel);
+
+            const fork = new THREE.Group();
+            fork.position.set(0, 0.95, -1.05);
+            const frontWheel = makeWheel(0, -0.4, 0);
+            fork.add(frontWheel);
+            const forkTube = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2), ASSETS.chromeMat);
+            forkTube.position.set(0, 0.2, 0.12);
+            forkTube.rotation.x = 0.25;
+            fork.add(forkTube);
+            // 车把
+            const handlebar = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.0), ASSETS.frameMat);
+            handlebar.rotation.z = Math.PI / 2;
+            handlebar.position.set(0, 0.62, -0.05);
+            fork.add(handlebar);
+            root.add(fork);
+
+            // 车架 & 红色油箱 (主角)
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.45, 2.1), ASSETS.frameMat);
+            frame.position.set(0, 1.0, 0.05);
+            frame.rotation.x = -0.06;
+            frame.castShadow = true;
+            root.add(frame);
+
+            const tank = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.95), bodyMat);
+            tank.position.set(0, 1.3, -0.15);
+            tank.castShadow = true;
+            root.add(tank);
+
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.22, 0.95), ASSETS.tireMat);
+            seat.position.set(0, 1.26, 0.62);
+            seat.castShadow = true;
+            root.add(seat);
+
+            const tail = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.3, 0.5), bodyMat);
+            tail.position.set(0, 1.32, 1.15);
+            tail.rotation.x = 0.18;
+            tail.castShadow = true;
+            root.add(tail);
+
+            // 排气管
+            const exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 1.5), ASSETS.chromeMat);
+            exhaust.rotation.x = Math.PI / 2 - 0.08;
+            exhaust.position.set(0.32, 0.62, 0.5);
+            root.add(exhaust);
+
+            // 骑手 (会随压弯挂出身体)
+            const rider = new THREE.Group();
+            rider.position.set(0, 1.35, 0.45);
+
+            const hips = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.35, 0.5), ASSETS.riderMat);
+            hips.position.set(0, 0.15, 0.1);
+            hips.castShadow = true;
+            rider.add(hips);
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.42), ASSETS.riderMat);
+            torso.position.set(0, 0.65, -0.08);
+            torso.rotation.x = 0.42; // 前倾趴伏
+            torso.castShadow = true;
+            rider.add(torso);
+
+            const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 12), ASSETS.helmetMat);
+            helmet.position.set(0, 1.12, -0.42);
+            helmet.castShadow = true;
+            rider.add(helmet);
+
+            const visor = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.1), ASSETS.frameMat);
+            visor.position.set(0, 1.1, -0.66);
+            rider.add(visor);
+
+            // 手臂伸向车把
+            const armGeo = new THREE.BoxGeometry(0.14, 0.14, 0.75);
+            const armL = new THREE.Mesh(armGeo, ASSETS.riderMat);
+            armL.position.set(-0.3, 0.72, -0.55);
+            armL.rotation.x = -0.5;
+            armL.rotation.y = 0.15;
+            rider.add(armL);
+            const armR = new THREE.Mesh(armGeo, ASSETS.riderMat);
+            armR.position.set(0.3, 0.72, -0.55);
+            armR.rotation.x = -0.5;
+            armR.rotation.y = -0.15;
+            rider.add(armR);
+
+            // 腿
+            const legGeo = new THREE.BoxGeometry(0.16, 0.55, 0.2);
+            const legL = new THREE.Mesh(legGeo, ASSETS.riderMat);
+            legL.position.set(-0.3, -0.15, 0.05);
+            legL.rotation.x = 0.4;
+            rider.add(legL);
+            const legR = new THREE.Mesh(legGeo, ASSETS.riderMat);
+            legR.position.set(0.3, -0.15, 0.05);
+            legR.rotation.x = 0.4;
+            rider.add(legR);
+
+            root.add(rider);
+
+            // 水花粒子系统
+            const SPRAY_COUNT = 120;
+            const sprayGeo = new THREE.BufferGeometry();
+            sprayGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(SPRAY_COUNT * 3), 3));
+            const sprayMat = new THREE.PointsMaterial({
+                color: 0xffffff, size: 0.5, transparent: true, opacity: 0.85, depthWrite: false
+            });
+            const spray = new THREE.Points(sprayGeo, sprayMat);
+            spray.frustumCulled = false;
+            // 注意: 不挂到车身上, 粒子使用世界坐标, 由 Bike 构造函数加入 scene
+
+            return { root, rearWheel, frontWheel, fork, rider, spray, sprayGeo, SPRAY_COUNT };
+        }
+
+        // --- 摩托类 (替代骨架中的 Boat) ---
+        class Bike {
+            constructor(isPlayer, x, z, bodyMat) {
+                this.isPlayer = isPlayer;
+                this.parts = buildBikeMesh(bodyMat);
+                this.mesh = this.parts.root;
+                scene.add(this.mesh);
+                this.parts.spray.position.set(0, 0, 0); // 世界坐标模式
+                scene.add(this.parts.spray);
+
+                // 水花粒子状态
+                this.particles = [];
+                for (let i = 0; i < this.parts.SPRAY_COUNT; i++) {
+                    this.particles.push({ life: 0, x: 0, y: -100, z: 0, vx: 0, vy: 0, vz: 0 });
+                }
+
+                // 物理
+                this.pos = new THREE.Vector3(x, 0, z);
+                this.heading = 0;
+                this.speed = 0;
+                this.lean = 0;
+                this.progress = 0;
+                this.crashing = false;
+                this.dead = false;
+                this.steerVisual = 0;
+            }
+
+            update(dt, time) {
+                if (this.dead) return;
+
+                if (this.crashing) {
+                    // 摔车翻滚 + 下沉
+                    this.mesh.rotation.x += dt * 2.2;
+                    this.mesh.rotation.z += dt * 1.4;
+                    this.mesh.position.y -= dt * 1.5;
+                    if (this.mesh.position.y < -8) this.dead = true;
+                    return;
+                }
+
+                let steerInput = 0;
+
+                if (currentState === GAME_STATE.RACING) {
+                    if (this.isPlayer) {
+                        if (keys.w) this.speed += CONFIG.bikeAccel * dt;
+                        if (keys.s) this.speed -= CONFIG.bikeAccel * dt * 1.4;
+                        if (this.speed > CONFIG.maxSpeed) this.speed = CONFIG.maxSpeed;
+                        if (this.speed < -1.2) this.speed = -1.2;
+                        this.speed *= 0.988;
+
+                        if (Math.abs(this.speed) > 0.15) {
+                            const dir = this.speed > 0 ? 1 : -1;
+                            if (keys.a) { this.heading += CONFIG.turnSpeed * dir * 1.6; steerInput += 1; }
+                            if (keys.d) { this.heading -= CONFIG.turnSpeed * dir * 1.6; steerInput -= 1; }
+                        }
+                    } else {
+                        steerInput = this.updateAI(dt);
+                    }
+                } else {
+                    this.speed *= 0.95;
+                }
+
+                // 前进 (速度越快转弯半径越大, 转向随速度衰减)
+                const speedFactor = Math.min(1, Math.abs(this.speed) / CONFIG.maxSpeed);
+                this.pos.x -= Math.sin(this.heading) * this.speed * (0.85 + 0.15 * speedFactor);
+                this.pos.z -= Math.cos(this.heading) * this.speed * (0.85 + 0.15 * speedFactor);
+
+                // 贴合波浪
+                const waveY = getWaveHeight(this.pos.x, this.pos.z, time);
+                this.pos.y = waveY - 0.35;
+
+                const offset = 1.6;
+                const sinH = Math.sin(this.heading);
+                const cosH = Math.cos(this.heading);
+                const hFront = getWaveHeight(this.pos.x - sinH * offset, this.pos.z - cosH * offset, time);
+                const hBack = getWaveHeight(this.pos.x + sinH * offset, this.pos.z + cosH * offset, time);
+                const hLeft = getWaveHeight(this.pos.x - cosH * offset, this.pos.z + sinH * offset, time);
+                const hRight = getWaveHeight(this.pos.x + cosH * offset, this.pos.z - sinH * offset, time);
+
+                const pitch = Math.atan2(hBack - hFront, offset * 2);
+                const waveRoll = Math.atan2(hLeft - hRight, offset * 2);
+
+                // 压弯倾斜: 转向时车身+骑手侧倾
+                const leanTarget = steerInput * Math.min(1, Math.abs(this.speed) / (CONFIG.maxSpeed * 0.6)) * CONFIG.leanAmount;
+                this.lean = THREE.MathUtils.lerp(this.lean, leanTarget, 0.12);
+                this.steerVisual = THREE.MathUtils.lerp(this.steerVisual, steerInput * 0.35, 0.2);
+
+                this.mesh.position.copy(this.pos);
+                this.mesh.rotation.y = this.heading;
+                this.mesh.rotation.x = THREE.MathUtils.lerp(this.mesh.rotation.x, pitch, 0.15);
+                this.mesh.rotation.z = THREE.MathUtils.lerp(this.mesh.rotation.z, waveRoll * 0.6 + this.lean, 0.15);
+
+                // 骑手挂弯 (身体比车压得更低)
+                this.parts.rider.rotation.z = this.lean * 0.5;
+                this.parts.fork.rotation.y = this.steerVisual;
+
+                // 车轮转动
+                this.parts.rearWheel.rotation.x -= this.speed * dt * 6;
+                this.parts.frontWheel.rotation.x -= this.speed * dt * 6;
+
+                // 巨浪翻车判定 (倾角过大)
+                if (currentState === GAME_STATE.RACING) {
+                    const totalRoll = Math.abs(waveRoll + this.lean);
+                    if (totalRoll > 1.05 || Math.abs(pitch) > 1.0) {
+                        this.wipeout();
+                        if (this.isPlayer) endGame("被巨浪掀翻了！");
+                    }
+                }
+
+                this.updateSpray(dt);
+            }
+
+            updateAI(dt) {
+                let steerInput = 0;
+                if (this.progress < trackPath.length - 1) {
+                    const target = trackPath[this.progress + 1];
+                    const dx = target.x - this.pos.x;
+                    const dz = target.z - this.pos.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist < 25) this.progress++;
+
+                    const desiredHeading = Math.atan2(-dx, -dz);
+                    let diff = desiredHeading - this.heading;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+
+                    if (diff > 0.08) { this.heading += CONFIG.turnSpeed * 1.3; steerInput = 1; }
+                    else if (diff < -0.08) { this.heading -= CONFIG.turnSpeed * 1.3; steerInput = -1; }
+
+                    // 与邻车保持距离
+                    for (let other of bikes) {
+                        if (other === this || other.dead) continue;
+                        const d = this.pos.distanceTo(other.pos);
+                        if (d < 6) {
+                            this.heading += (this.pos.x > other.pos.x ? -0.05 : 0.05);
+                            steerInput = this.pos.x > other.pos.x ? -0.5 : 0.5;
+                        }
+                    }
+
+                    // 绕开礁石
+                    for (let r of obstacles) {
+                        const rdx = r.position.x - this.pos.x;
+                        const rdz = r.position.z - this.pos.z;
+                        const rDist = Math.sqrt(rdx * rdx + rdz * rdz);
+                        if (rDist < 14 && rDist > 0) {
+                            this.heading += (Math.random() > 0.5 ? 0.09 : -0.09);
+                        }
+                    }
+                }
+
+                const cruise = CONFIG.maxSpeed * 0.8;
+                if (this.speed < cruise) this.speed += dt * 1.6;
+                return steerInput;
+            }
+
+            updateSpray(dt) {
+                // 速度越快水花越大越密
+                const spd = Math.abs(this.speed);
+                const spawnRate = Math.max(0, (spd - 0.5)) * 26;
+                this.sprayAcc = (this.sprayAcc || 0) + spawnRate * dt;
+
+                const posAttr = this.parts.sprayGeo.attributes.position;
+
+                // 生成新水花 (车尾位置)
+                while (this.sprayAcc >= 1) {
+                    this.sprayAcc -= 1;
+                    let spawned = false;
+                    for (let i = 0; i < this.parts.SPRAY_COUNT; i++) {
+                        const p = this.particles[i];
+                        if (p.life <= 0) {
+                            const sinH = Math.sin(this.heading);
+                            const cosH = Math.cos(this.heading);
+                            const lx = (Math.random() - 0.5) * 0.6;
+                            p.x = this.pos.x + cosH * 1.4 + sinH * lx;
+                            p.z = this.pos.z - sinH * 1.4 + cosH * lx;
+                            p.y = this.pos.y + 0.3;
+                            const back = 2.5 + Math.random() * 3 + spd;
+                            p.vx = sinH * back + (Math.random() - 0.5) * 2;
+                            p.vz = cosH * back + (Math.random() - 0.5) * 2;
+                            p.vy = 1.5 + Math.random() * 2.5;
+                            p.life = 0.5 + Math.random() * 0.4;
+                            spawned = true;
+                            break;
+                        }
+                    }
+                    if (!spawned) { this.sprayAcc = 0; break; } // 粒子池已满, 防死循环
+                }
+
+                // 更新存活粒子
+                for (let i = 0; i < this.parts.SPRAY_COUNT; i++) {
+                    const p = this.particles[i];
+                    if (p.life > 0) {
+                        p.life -= dt;
+                        p.vy -= dt * 9; // 重力
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
+                        p.z += p.vz * dt;
+                        posAttr.setXYZ(i, p.x, p.y, p.z);
+                    } else {
+                        posAttr.setXYZ(i, 0, -100, 0);
+                    }
+                }
+                posAttr.needsUpdate = true;
+            }
+
+            wipeout() {
+                if (this.crashing) return;
+                this.crashing = true;
+                this.mesh.position.y += 1;
+                this.parts.spray.material.opacity = 0; // 停止水花
+                this.sprayAcc = 0;
+            }
+        }
+
+        function spawnBikes() {
+            // 3 排发车格, 玩家第一排中间
+            playerBike = new Bike(true, 0, 0, ASSETS.playerBodyMat);
+            bikes.push(playerBike);
+            bikes.push(new Bike(false, -8, 0, ASSETS.enemyBodyMats[0]));
+            bikes.push(new Bike(false, 8, 0, ASSETS.enemyBodyMats[1]));
+            bikes.push(new Bike(false, -4, 8, ASSETS.enemyBodyMats[2]));
+            bikes.push(new Bike(false, 4, 8, ASSETS.enemyBodyMats[3]));
+            bikes.push(new Bike(false, -13, 8, ASSETS.enemyBodyMats[4]));
+            bikes.push(new Bike(false, 13, 8, ASSETS.enemyBodyMats[5]));
+            bikes.push(new Bike(false, 0, 16, ASSETS.enemyBodyMats[6]));
+            bikes.push(new Bike(false, -9, 16, ASSETS.enemyBodyMats[7]));
+            bikes.push(new Bike(false, 9, 16, ASSETS.enemyBodyMats[8]));
+        }
+
+        // --- 游戏流程 ---
+        function startGame(difficulty) {
+            window.focus();
+            if (difficulty === 'easy') {
+                CONFIG.waveHeight = 0.7;
+                CONFIG.choppiness = 0.6;
+                CONFIG.maxSpeed = 3.6;
+                CONFIG.trackWidth = 45;
+            } else if (difficulty === 'normal') {
+                CONFIG.waveHeight = 1.2;
+                CONFIG.choppiness = 1.0;
+                CONFIG.maxSpeed = 3.4;
+                CONFIG.trackWidth = 35;
+            } else {
+                CONFIG.waveHeight = 2.0;
+                CONFIG.choppiness = 1.4;
+                CONFIG.maxSpeed = 3.2;
+                CONFIG.trackWidth = 30;
+            }
+
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('hud').style.display = 'flex';
+            if (isMobile()) document.getElementById('mobile-controls').style.display = 'flex';
+
+            currentState = GAME_STATE.COUNTDOWN;
+            countdownValue = 3;
+            countdownTimer = 0;
+            const cdEl = document.getElementById('countdown');
+            cdEl.style.display = 'block';
+            cdEl.style.color = '#fff';
+            cdEl.innerText = "3";
+        }
+
+        // 波浪高度函数 (骨架原版)
+        function getWaveHeight(x, y, time) {
+            let z = 0;
+            z += Math.sin(x * 0.05 + time * CONFIG.waveSpeed) * CONFIG.waveHeight;
+            z += Math.cos(y * 0.03 + time * 0.8 * CONFIG.waveSpeed) * CONFIG.waveHeight * 0.5;
+            z += Math.sin((x + y) * 0.1 * CONFIG.choppiness + time * 2) * (CONFIG.waveHeight * 0.2 * CONFIG.choppiness);
+            z += Math.sin(x * 0.2 - time) * 0.2 * CONFIG.choppiness;
+            return z;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.05);
+            const time = clock.getElapsedTime();
+
+            // 倒计时
+            if (currentState === GAME_STATE.COUNTDOWN) {
+                countdownTimer += dt;
+                if (countdownTimer > 1.0) {
+                    countdownTimer = 0;
+                    countdownValue--;
+                    const cdEl = document.getElementById('countdown');
+                    if (countdownValue > 0) {
+                        cdEl.innerText = countdownValue;
+                    } else if (countdownValue === 0) {
+                        cdEl.innerText = "GO!";
+                        cdEl.style.color = "#4ade80";
+                    } else {
+                        cdEl.style.display = 'none';
+                        currentState = GAME_STATE.RACING;
+                    }
+                }
+            }
+
+            // 水面跟随玩家
+            if (playerBike && !playerBike.dead) {
+                waterMesh.position.x = playerBike.pos.x;
+                waterMesh.position.z = playerBike.pos.z;
+            }
+            updateWaterMesh(time);
+
+            // 摩托更新
+            bikes.forEach(b => b.update(dt, time));
+
+            // 浮标起伏
+            buoys.forEach(b => {
+                const h = getWaveHeight(b.position.x, b.position.z, time);
+                b.position.y = h;
+                b.rotation.x = Math.sin(time + b.userData.offset) * 0.2;
+                b.rotation.z = Math.cos(time + b.userData.offset) * 0.2;
+            });
+
+            // 玩家判定
+            if (playerBike && !playerBike.dead && !playerBike.crashing) {
+
+                // 礁石碰撞
+                for (let rock of obstacles) {
+                    if (playerBike.pos.distanceTo(rock.position) < 3) {
+                        playerBike.wipeout();
+                        endGame("撞上礁石落水了！");
+                        break;
+                    }
+                }
+
+                // 与其他摩托碰撞
+                if (!playerBike.crashing) {
+                    for (let b of bikes) {
+                        if (b === playerBike || b.dead || b.crashing) continue;
+                        if (playerBike.pos.distanceTo(b.pos) < 2.6) {
+                            playerBike.wipeout();
+                            b.wipeout();
+                            endGame("和其他机车撞车了！");
+                            break;
+                        }
+                    }
+                }
+
+                // 出界判定
+                if (currentState === GAME_STATE.RACING && !playerBike.crashing) {
+                    let minD = 10000;
+                    for (let p of trackPath) {
+                        const d = Math.sqrt(Math.pow(p.x - playerBike.pos.x, 2) + Math.pow(p.z - playerBike.pos.z, 2));
+                        if (d < minD) minD = d;
+                    }
+                    const warningEl = document.getElementById('warning-overlay');
+                    if (minD > CONFIG.trackWidth) {
+                        warningEl.style.display = 'flex';
+                        outOfBoundsTime += dt;
+                        document.getElementById('out-timer').innerText = (5.0 - outOfBoundsTime).toFixed(1);
+                        if (outOfBoundsTime > 5.0) {
+                            playerBike.wipeout();
+                            endGame("偏离赛道，取消资格！");
+                        }
+                    } else {
+                        warningEl.style.display = 'none';
+                        outOfBoundsTime = 0;
+                    }
+                }
+
+                // 实时进度与排名 (沿赛道最近点索引)
+                bikes.forEach(b => {
+                    let best = 0, bestD = 10000;
+                    for (let i = 0; i < trackPath.length; i++) {
+                        const p = trackPath[i];
+                        const d = Math.pow(p.x - b.pos.x, 2) + Math.pow(p.z - b.pos.z, 2);
+                        if (d < bestD) { bestD = d; best = i; }
+                    }
+                    b.progress = best;
+                });
+                const alive = bikes.filter(b => !b.dead && !b.crashing);
+                const sorted = [...alive].sort((a, c) => c.progress - a.progress);
+                if (!playerBike.crashing) {
+                    const rank = sorted.indexOf(playerBike) + 1;
+                    document.getElementById('rank-val').innerText = rank;
+                    document.getElementById('total-riders').innerText = alive.length;
+                }
+
+                // 速度表
+                const kmh = Math.max(0, Math.round(playerBike.speed * 72));
+                document.getElementById('speed-val').innerText = kmh;
+
+                // 终点判定
+                if (currentState === GAME_STATE.RACING && playerBike.progress >= trackPath.length - 2) {
+                    currentState = GAME_STATE.FINISHED;
+                    const rank = sorted.indexOf(playerBike) + 1;
+                    endGame("以第 " + rank + " 名冲过终点！", true);
+                }
+            }
+
+            // 摄像机: 低角度贴水追车
+            if (playerBike && !playerBike.dead) {
+                const back = 11, height = 5.2;
+                const targetX = playerBike.pos.x + Math.sin(playerBike.heading) * back;
+                const targetZ = playerBike.pos.z + Math.cos(playerBike.heading) * back;
+                camera.position.x += (targetX - camera.position.x) * CONFIG.cameraLag;
+                camera.position.z += (targetZ - camera.position.z) * CONFIG.cameraLag;
+                camera.position.y += (playerBike.pos.y + height - camera.position.y) * CONFIG.cameraLag;
+                camera.lookAt(playerBike.pos.x, playerBike.pos.y + 2.2, playerBike.pos.z);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function updateWaterMesh(time) {
+            const posAttr = waterGeo.attributes.position;
+            const colAttr = waterGeo.attributes.color;
+            const count = posAttr.count;
+
+            const wx = waterMesh.position.x;
+            const wz = waterMesh.position.z;
+
+            const C_DEEP = new THREE.Color(0x004968);
+            const C_SHALLOW = new THREE.Color(0x20b2aa);
+            const C_FOAM = new THREE.Color(0xffffff);
+            const tmpColor = new THREE.Color();
+
+            for (let i = 0; i < count; i++) {
+                const lx = originalPositions[i * 3];
+                const lz = originalPositions[i * 3 + 1];
+                const worldX = lx + wx;
+                const worldZ = lz + wz;
+                const z = getWaveHeight(worldX, worldZ, time);
+                posAttr.setZ(i, z);
+                let hNorm = (z - (-CONFIG.waveHeight)) / (CONFIG.waveHeight * 2);
+                if (hNorm < 0) hNorm = 0; if (hNorm > 1) hNorm = 1;
+                if (hNorm > 0.8) tmpColor.lerpColors(C_SHALLOW, C_FOAM, (hNorm - 0.8) * 5);
+                else tmpColor.lerpColors(C_DEEP, C_SHALLOW, hNorm);
+                colAttr.setXYZ(i, tmpColor.r, tmpColor.g, tmpColor.b);
+            }
+            posAttr.needsUpdate = true;
+            colAttr.needsUpdate = true;
+            waterGeo.computeVertexNormals();
+        }
+
+        function handleKey(e, pressed) {
+            const k = e.code;
+            if (k === 'ArrowUp' || k === 'KeyW') keys.w = pressed;
+            if (k === 'ArrowDown' || k === 'KeyS') keys.s = pressed;
+            if (k === 'ArrowLeft' || k === 'KeyA') keys.a = pressed;
+            if (k === 'ArrowRight' || k === 'KeyD') keys.d = pressed;
+            if (pressed && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(k)) e.preventDefault();
+        }
+
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function endGame(msg, win = false) {
+            setTimeout(() => {
+                const overlay = document.getElementById('overlay');
+                overlay.style.display = 'flex';
+                document.getElementById('overlay-title').innerText = win ? "FINISH!" : "GAME OVER";
+                document.getElementById('overlay-title').style.color = win ? "#4ade80" : "#ef4444";
+                document.getElementById('overlay-msg').innerText = msg;
+            }, 600);
+        }
+
+        function resetGame() { window.location.reload(); }
+
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        function setupMobileControls() {
+            const zone = document.getElementById('joystick-zone');
+            const knob = document.getElementById('joystick-knob');
+            const maxDist = 35;
+
+            const handleMove = (clientX, clientY) => {
+                const rect = zone.getBoundingClientRect();
+                let dx = clientX - (rect.left + rect.width / 2);
+                let dy = clientY - (rect.top + rect.height / 2);
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+                knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+                keys.w = dy < -10;
+                keys.s = dy > 10;
+                keys.a = dx < -10;
+                keys.d = dx > 10;
+            };
+
+            const reset = () => {
+                knob.style.transform = `translate(-50%, -50%)`;
+                keys.w = keys.s = keys.a = keys.d = false;
+            };
+
+            zone.addEventListener('touchstart', (e) => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+            zone.addEventListener('touchmove', (e) => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+            zone.addEventListener('touchend', (e) => { e.preventDefault(); reset(); });
+
+            let dragging = false;
+            zone.addEventListener('mousedown', (e) => { dragging = true; handleMove(e.clientX, e.clientY); });
+            window.addEventListener('mousemove', (e) => { if (dragging) handleMove(e.clientX, e.clientY); });
+            window.addEventListener('mouseup', (e) => { if (dragging) { dragging = false; reset(); } });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
