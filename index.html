@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -13,11 +14,19 @@
             user-select: none;
             -webkit-user-select: none;
         }
-        canvas { display: block; width: 100vw; height: 100vh; }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
 
         .ui-layer {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
             display: flex;
             flex-direction: column;
@@ -29,7 +38,7 @@
         /* Start Screen */
         #start-screen {
             background:
-                linear-gradient(180deg, rgba(0,15,40,0.70) 0%, rgba(0,25,60,0.45) 40%, rgba(2,8,26,0.92) 100%),
+                linear-gradient(180deg, rgba(0, 15, 40, 0.70) 0%, rgba(0, 25, 60, 0.45) 40%, rgba(2, 8, 26, 0.92) 100%),
                 url('assets/rider.jpg') center 18% / cover no-repeat;
             z-index: 30;
             pointer-events: auto;
@@ -37,6 +46,7 @@
             justify-content: center;
             text-align: center;
         }
+
         .menu-panel {
             background: rgba(2, 10, 30, 0.45);
             border: 1px solid rgba(255, 255, 255, 0.12);
@@ -44,16 +54,66 @@
             padding: 36px 48px 30px;
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
             max-width: 720px;
         }
-        #start-screen h1 {
-            font-size: 4.5rem; color: #ff5555; margin-bottom: 6px;
-            text-transform: uppercase; letter-spacing: 6px;
-            text-shadow: 0 0 30px rgba(255,80,80,0.65), 0 4px 16px rgba(0,0,0,0.8);
+
+        /* 标题上方署名 */
+        .name-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 4.15rem;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: #ffd76a;
+            padding: 6px 0 0;
+            margin-bottom: 12px;
+            text-shadow: 0 0 18px rgba(255, 200, 80, 0.55), 0 2px 8px rgba(0, 0, 0, 0.85);
         }
-        #start-screen h2 { font-size: 1.4rem; color: #ffffff; margin: 0 0 14px; font-weight: normal; letter-spacing: 8px; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
-        #start-screen p { color: #dbe4ef; font-size: 1.1rem; margin-bottom: 30px; max-width: 620px; line-height: 1.7; text-shadow: 0 1px 6px rgba(0,0,0,0.7); }
+
+        .name-tag::before,
+        .name-tag::after {
+            content: '';
+            display: block;
+            width: 46px;
+            height: 1px;
+        }
+
+        .name-tag::before {
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 106, 0.9));
+        }
+
+        .name-tag::after {
+            background: linear-gradient(90deg, rgba(255, 215, 106, 0.9), transparent);
+        }
+
+        #start-screen h1 {
+            font-size: 4.5rem;
+            color: #ff5555;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            text-shadow: 0 0 30px rgba(255, 80, 80, 0.65), 0 4px 16px rgba(0, 0, 0, 0.8);
+        }
+
+        #start-screen h2 {
+            font-size: 1.4rem;
+            color: #ffffff;
+            margin: 0 0 14px;
+            font-weight: normal;
+            letter-spacing: 8px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+        }
+
+        #start-screen p {
+            color: #dbe4ef;
+            font-size: 1.1rem;
+            margin-bottom: 30px;
+            max-width: 620px;
+            line-height: 1.7;
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+        }
 
         .difficulty-btn {
             background: transparent;
@@ -69,10 +129,20 @@
             letter-spacing: 3px;
             font-family: inherit;
         }
-        .difficulty-btn:hover { background: #ff5555; color: #fff; transform: translateY(-3px); box-shadow: 0 0 22px rgba(255,85,85,0.45); }
+
+        .difficulty-btn:hover {
+            background: #ff5555;
+            color: #fff;
+            transform: translateY(-3px);
+            box-shadow: 0 0 22px rgba(255, 85, 85, 0.45);
+        }
 
         /* HUD */
-        .hud-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
 
         .rank-box {
             background: rgba(0, 0, 0, 0.6);
@@ -82,8 +152,19 @@
             text-align: center;
             border: 2px solid #ff5555;
         }
-        .rank-title { font-size: 0.8rem; color: #94a3b8; letter-spacing: 2px; }
-        .rank-value { font-size: 2.6rem; font-weight: bold; color: #fff; line-height: 1.1; }
+
+        .rank-title {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            letter-spacing: 2px;
+        }
+
+        .rank-value {
+            font-size: 2.6rem;
+            font-weight: bold;
+            color: #fff;
+            line-height: 1.1;
+        }
 
         .speed-box {
             background: rgba(0, 0, 0, 0.6);
@@ -93,9 +174,24 @@
             text-align: right;
             border: 2px solid #38bdf8;
         }
-        .speed-title { font-size: 0.8rem; color: #94a3b8; letter-spacing: 2px; }
-        .speed-value { font-size: 2.6rem; font-weight: bold; color: #38bdf8; line-height: 1.1; }
-        .speed-unit { font-size: 1rem; color: #7dd3fc; }
+
+        .speed-title {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            letter-spacing: 2px;
+        }
+
+        .speed-value {
+            font-size: 2.6rem;
+            font-weight: bold;
+            color: #38bdf8;
+            line-height: 1.1;
+        }
+
+        .speed-unit {
+            font-size: 1rem;
+            color: #7dd3fc;
+        }
 
         .controls-hint {
             position: absolute;
@@ -112,12 +208,13 @@
         #countdown {
             display: none;
             position: absolute;
-            top: 50%; left: 50%;
+            top: 50%;
+            left: 50%;
             transform: translate(-50%, -50%);
             font-size: 10rem;
             font-weight: 900;
             color: #fff;
-            text-shadow: 0 0 50px rgba(255,255,255,0.8);
+            text-shadow: 0 0 50px rgba(255, 255, 255, 0.8);
             z-index: 25;
             pointer-events: none;
         }
@@ -126,7 +223,10 @@
         #warning-overlay {
             display: none;
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             border: 20px solid rgba(255, 60, 60, 0.6);
             box-sizing: border-box;
             z-index: 15;
@@ -135,8 +235,9 @@
             align-items: center;
             flex-direction: column;
         }
+
         #warning-msg {
-            background: rgba(220,38,38,0.85);
+            background: rgba(220, 38, 38, 0.85);
             color: white;
             padding: 20px 40px;
             font-size: 2rem;
@@ -148,7 +249,10 @@
         #overlay {
             display: none;
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0, 10, 30, 0.9);
             z-index: 40;
             pointer-events: auto;
@@ -158,8 +262,19 @@
             color: white;
             text-align: center;
         }
-        #overlay h1 { font-size: 5rem; margin: 0; letter-spacing: 6px; text-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
-        #overlay p { font-size: 1.5rem; margin: 20px 0 40px; color: #cbd5e1; }
+
+        #overlay h1 {
+            font-size: 5rem;
+            margin: 0;
+            letter-spacing: 6px;
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+        }
+
+        #overlay p {
+            font-size: 1.5rem;
+            margin: 20px 0 40px;
+            color: #cbd5e1;
+        }
 
         .restart-btn {
             padding: 15px 50px;
@@ -172,10 +287,15 @@
             font-weight: bold;
             letter-spacing: 2px;
             transition: all 0.2s;
-            box-shadow: 0 0 20px rgba(255,85,85,0.4);
+            box-shadow: 0 0 20px rgba(255, 85, 85, 0.4);
             font-family: inherit;
         }
-        .restart-btn:hover { background: #fff; color: #d21f1f; transform: scale(1.05); }
+
+        .restart-btn:hover {
+            background: #fff;
+            color: #d21f1f;
+            transform: scale(1.05);
+        }
 
         /* Mobile Controls */
         #mobile-controls {
@@ -191,6 +311,7 @@
             padding: 0 40px;
             box-sizing: border-box;
         }
+
         #joystick-zone {
             position: relative;
             width: 120px;
@@ -201,9 +322,11 @@
             pointer-events: auto;
             touch-action: none;
         }
+
         #joystick-knob {
             position: absolute;
-            top: 50%; left: 50%;
+            top: 50%;
+            left: 50%;
             width: 50px;
             height: 50px;
             background: rgba(255, 85, 85, 0.8);
@@ -215,21 +338,24 @@
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
+
 <body>
 
     <!-- Start Screen -->
     <div id="start-screen" class="ui-layer">
         <div class="menu-panel">
-            <h1>WaveMotor</h1>
+            <div class="name-tag">【张雪】</div>
+            <h1 style="margin-top: 0;">WaveMotor</h1>
             <h2>浪 花 机 车 · 水 上 狂 飙</h2>
             <p>骑着摩托在水面上狂飙！穿过红绿浮标之间的赛道，<br>
-            小心巨浪把你掀翻、礁石把你撞落水。偏离赛道 5 秒将被取消资格！</p>
+                小心巨浪把你掀翻、礁石把你撞落水。偏离赛道 5 秒将被取消资格！</p>
             <div>
                 <button class="difficulty-btn" onclick="startGame('easy')">简单</button>
                 <button class="difficulty-btn" onclick="startGame('normal')">普通</button>
                 <button class="difficulty-btn" onclick="startGame('hard')">困难</button>
             </div>
-            <p style="margin-top:26px; font-size:0.9rem; color:#94a3b8;">致敬 OutRun 街机画风 × Three.js 海浪物理</p>
+            <p style="margin-top:26px; font-size:0.9rem; color:#94a3b8; display:none;">致敬 OutRun 街机画风 × Three.js 海浪物理
+            </p>
         </div>
     </div>
 
@@ -238,7 +364,8 @@
         <div class="hud-top">
             <div class="rank-box">
                 <div class="rank-title">当前排名</div>
-                <div><span id="rank-val" class="rank-value">1</span><span style="font-size:1.2rem;color:#aaa;"> / <span id="total-riders">10</span></span></div>
+                <div><span id="rank-val" class="rank-value">1</span><span style="font-size:1.2rem;color:#aaa;"> / <span
+                            id="total-riders">10</span></span></div>
             </div>
             <div class="speed-box">
                 <div class="speed-title">速度</div>
@@ -292,6 +419,12 @@
 
         const GAME_STATE = { MENU: 0, COUNTDOWN: 1, RACING: 2, FINISHED: 3 };
 
+        // 前后轮滑板尺寸 (长 × 宽 × 厚, 单位: 世界单位)
+        const BOARD = { len: 2.1, width: 0.66, thick: 0.26, kickLen: 0.34, kickAngle: 0.36 };
+        // 车根节点相对水面的高度: 使滑板中线正好压在水线上 (板底吃水一半, 板面外露一半),
+        // 同时板面与轮底相切 (轮心 y=0.55, 轮胎外半径 0.55+0.2=0.75)
+        const RIDE_HEIGHT = BOARD.thick / 2 + 0.2;
+
         // --- GLOBALS ---
         let scene, camera, renderer, clock;
         let waterMesh, waterGeo, originalPositions;
@@ -307,7 +440,7 @@
         let countdownTimer = 0;
 
         const ASSETS = {};
-        const keys = { w:false, s:false, a:false, d:false };
+        const keys = { w: false, s: false, a: false, d: false };
 
         // --- INIT ---
         function init() {
@@ -482,14 +615,60 @@
                 return wrapper;
             }
 
+            // 滑板板面 (前/后轮各一块, 让摩托像踩着滑板在水面滑行)
+            // 注意: 板体不挂在会自转的轮组内, 由 root / fork 承载
+            function makeBoard(boardMat) {
+                const board = new THREE.Group();
+                const deckLen = BOARD.len - BOARD.kickLen * 2;
+                const kickLift = Math.sin(BOARD.kickAngle) * BOARD.kickLen / 2;
+
+                const deck = new THREE.Mesh(new THREE.BoxGeometry(BOARD.width, BOARD.thick, deckLen), boardMat);
+                deck.castShadow = true;
+                deck.receiveShadow = true;
+                board.add(deck);
+
+                // 翘头 (-z 为车头) 与翘尾
+                const kickGeo = new THREE.BoxGeometry(BOARD.width, BOARD.thick * 0.85, BOARD.kickLen);
+                const nose = new THREE.Mesh(kickGeo, boardMat);
+                nose.position.set(0, kickLift, -(deckLen + BOARD.kickLen) / 2 + 0.01);
+                nose.rotation.x = BOARD.kickAngle;
+                nose.castShadow = true;
+                board.add(nose);
+
+                const tail = new THREE.Mesh(kickGeo, boardMat);
+                tail.position.set(0, kickLift, (deckLen + BOARD.kickLen) / 2 - 0.01);
+                tail.rotation.x = -BOARD.kickAngle;
+                tail.castShadow = true;
+                board.add(tail);
+
+                // 板面两侧亮色压条 (侧视可见, 提高辨识度)
+                const railGeo = new THREE.BoxGeometry(0.05, 0.03, deckLen * 0.92);
+                [-1, 1].forEach(side => {
+                    const rail = new THREE.Mesh(railGeo, ASSETS.chromeMat);
+                    rail.position.set(side * (BOARD.width / 2 - 0.04), BOARD.thick / 2 + 0.012, 0);
+                    board.add(rail);
+                });
+
+                return board;
+            }
+
             // 后轮 / 前轮 (前轮带转向叉)
             const rearWheel = makeWheel(0, 0.55, 1.15);
             root.add(rearWheel);
+
+            const boardY = -RIDE_HEIGHT; // 板中线落点: 恰好等于 轮底 - 半板厚
+            const rearBoard = makeBoard(bodyMat);
+            rearBoard.position.set(0, boardY, 1.15);
+            root.add(rearBoard);
 
             const fork = new THREE.Group();
             fork.position.set(0, 0.95, -1.05);
             const frontWheel = makeWheel(0, -0.4, 0);
             fork.add(frontWheel);
+            // 前轮滑板挂在转向叉上, 随车把一起偏转
+            const frontBoard = makeBoard(bodyMat);
+            frontBoard.position.set(0, -0.4 - 0.75 - BOARD.thick / 2, 0);
+            fork.add(frontBoard);
             const forkTube = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2), ASSETS.chromeMat);
             forkTube.position.set(0, 0.2, 0.12);
             forkTube.rotation.x = 0.25;
@@ -666,9 +845,9 @@
                 this.pos.x -= Math.sin(this.heading) * this.speed * (0.85 + 0.15 * speedFactor);
                 this.pos.z -= Math.cos(this.heading) * this.speed * (0.85 + 0.15 * speedFactor);
 
-                // 贴合波浪
+                // 贴合波浪 (抬到滑板压水面线的高度)
                 const waveY = getWaveHeight(this.pos.x, this.pos.z, time);
-                this.pos.y = waveY - 0.35;
+                this.pos.y = waveY + RIDE_HEIGHT;
 
                 const offset = 1.6;
                 const sinH = Math.sin(this.heading);
@@ -732,7 +911,7 @@
                     for (let other of bikes) {
                         if (other === this || other.dead) continue;
                         const d = this.pos.distanceTo(other.pos);
-                        if (d < 6) {
+                        if (d < 10) {
                             this.heading += (this.pos.x > other.pos.x ? -0.05 : 0.05);
                             steerInput = this.pos.x > other.pos.x ? -0.5 : 0.5;
                         }
@@ -774,7 +953,7 @@
                             const lx = (Math.random() - 0.5) * 0.6;
                             p.x = this.pos.x + cosH * 1.4 + sinH * lx;
                             p.z = this.pos.z - sinH * 1.4 + cosH * lx;
-                            p.y = this.pos.y + 0.3;
+                            p.y = this.pos.y - RIDE_HEIGHT + 0.1; // 水线略上方起浪
                             const back = 2.5 + Math.random() * 3 + spd;
                             p.vx = sinH * back + (Math.random() - 0.5) * 2;
                             p.vz = cosH * back + (Math.random() - 0.5) * 2;
@@ -814,18 +993,15 @@
         }
 
         function spawnBikes() {
-            // 3 排发车格, 玩家第一排中间
+            // 3 排发车格, 间距拉大避免起步撞车; 共 6 辆
+            // 玩家第一排中间
             playerBike = new Bike(true, 0, 0, ASSETS.playerBodyMat);
             bikes.push(playerBike);
-            bikes.push(new Bike(false, -8, 0, ASSETS.enemyBodyMats[0]));
-            bikes.push(new Bike(false, 8, 0, ASSETS.enemyBodyMats[1]));
-            bikes.push(new Bike(false, -4, 8, ASSETS.enemyBodyMats[2]));
-            bikes.push(new Bike(false, 4, 8, ASSETS.enemyBodyMats[3]));
-            bikes.push(new Bike(false, -13, 8, ASSETS.enemyBodyMats[4]));
-            bikes.push(new Bike(false, 13, 8, ASSETS.enemyBodyMats[5]));
-            bikes.push(new Bike(false, 0, 16, ASSETS.enemyBodyMats[6]));
-            bikes.push(new Bike(false, -9, 16, ASSETS.enemyBodyMats[7]));
-            bikes.push(new Bike(false, 9, 16, ASSETS.enemyBodyMats[8]));
+            bikes.push(new Bike(false, -18, 0, ASSETS.enemyBodyMats[0]));
+            bikes.push(new Bike(false, 18, 0, ASSETS.enemyBodyMats[1]));
+            bikes.push(new Bike(false, -9, 16, ASSETS.enemyBodyMats[2]));
+            bikes.push(new Bike(false, 9, 16, ASSETS.enemyBodyMats[3]));
+            bikes.push(new Bike(false, 0, 32, ASSETS.enemyBodyMats[4]));
         }
 
         // --- 游戏流程 ---
@@ -1069,7 +1245,7 @@
             if (k === 'ArrowDown' || k === 'KeyS') keys.s = pressed;
             if (k === 'ArrowLeft' || k === 'KeyA') keys.a = pressed;
             if (k === 'ArrowRight' || k === 'KeyD') keys.d = pressed;
-            if (pressed && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(k)) e.preventDefault();
+            if (pressed && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(k)) e.preventDefault();
         }
 
         function onResize() {
@@ -1133,4 +1309,5 @@
         window.onload = init;
     </script>
 </body>
+
 </html>
