@@ -246,7 +246,7 @@
             </div>
         </div>
         <div class="controls-hint">
-            ⬆️ 油门 &nbsp; ⬇️ 刹车 &nbsp; ⬅️➡️ 转向（车身会压弯倾斜）
+            ⬆️ 油门 &nbsp; ⬇️ 刹车 &nbsp; ⬅️➡️ 轻点微调方向 · 松开自动回正赛道方向
         </div>
     </div>
 
@@ -645,8 +645,14 @@
 
                         if (Math.abs(this.speed) > 0.15) {
                             const dir = this.speed > 0 ? 1 : -1;
-                            if (keys.a) { this.heading += CONFIG.turnSpeed * dir * 1.6; steerInput += 1; }
-                            if (keys.d) { this.heading -= CONFIG.turnSpeed * dir * 1.6; steerInput -= 1; }
+                            // 转向量为原版的 1/5: 轻点只偏转一点点
+                            if (keys.a) { this.heading += CONFIG.turnSpeed * 0.32 * dir; steerInput += 1; }
+                            else if (keys.d) { this.heading -= CONFIG.turnSpeed * 0.32 * dir; steerInput -= 1; }
+                            else {
+                                // 松开方向键: 平滑回正到赛道方向
+                                const target = trackDirectionAt(this.pos);
+                                this.heading += angleDiff(target, this.heading) * Math.min(1, dt * 4);
+                            }
                         }
                     } else {
                         steerInput = this.updateAI(dt);
@@ -863,6 +869,34 @@
             z += Math.sin((x + y) * 0.1 * CONFIG.choppiness + time * 2) * (CONFIG.waveHeight * 0.2 * CONFIG.choppiness);
             z += Math.sin(x * 0.2 - time) * 0.2 * CONFIG.choppiness;
             return z;
+        }
+
+        // 角度差归一化到 [-PI, PI]
+        function angleDiff(a, b) {
+            let d = a - b;
+            while (d < -Math.PI) d += Math.PI * 2;
+            while (d > Math.PI) d -= Math.PI * 2;
+            return d;
+        }
+
+        // 计算某位置处赛道的前进方向 (用于松开方向键后自动回正)
+        function trackDirectionAt(pos) {
+            let best = 0, bestD = Infinity;
+            for (let i = 0; i < trackPath.length; i++) {
+                const p = trackPath[i];
+                const d = Math.pow(p.x - pos.x, 2) + Math.pow(p.z - pos.z, 2);
+                if (d < bestD) { bestD = d; best = i; }
+            }
+            const cur = trackPath[best];
+            const nxt = trackPath[Math.min(best + 1, trackPath.length - 1)];
+            const prv = trackPath[Math.max(best - 1, 0)];
+            // 优先用 当前点→下一点, 终点处退化为 前一点→当前点
+            const hasFwd = (nxt.x !== cur.x || nxt.z !== cur.z);
+            const from = hasFwd ? cur : prv;
+            const to = hasFwd ? nxt : cur;
+            const dx = to.x - from.x, dz = to.z - from.z;
+            if (dx === 0 && dz === 0) return playerBike ? playerBike.heading : 0;
+            return Math.atan2(-dx, -dz);
         }
 
         function animate() {
